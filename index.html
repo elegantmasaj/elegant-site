@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elegant</title>
+    <link href="https://fonts.cdnfonts.com/css/tasa-explorer" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.cdnfonts.com/css/tasa-explorer');
+
+        :root {
+            --font-main: 'TASA Explorer', sans-serif;
+            --color-bg-blur: rgba(255, 255, 255, 0.03);
+            --color-border: rgba(255, 255, 255, 0.08);
+            --color-text-main: #ffffff;
+            --color-whatsapp: #25D366;
+            --color-accent: #d4af37;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font-main); -webkit-font-smoothing: antialiased; }
+        body { background-image: url('arkaplan.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed; min-height: 100vh; color: var(--color-text-main); overflow-x: hidden; }
+        
+        .bg-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(180deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.6) 100%); z-index: -1; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+        .header-section { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 25px; }
+        .main-logo { max-height: 220px; width: auto; object-fit: contain; filter: drop-shadow(0px 8px 20px rgba(0,0,0,0.5)); }
+
+        /* LOGO VE İLAN ARASINDAKİ ŞEHİR BUTONLARI */
+        .city-filter-container { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 40px; width: 100%; }
+        
+        /* Geçiş kasmasını önlemek için tüm yumuşatıcı geçiş süreleri optimize edildi */
+        .city-btn { background: var(--color-bg-blur); border: 1px solid var(--color-border); color: #fff; padding: 10px 24px; border-radius: 30px; cursor: pointer; font-weight: 500; font-size: 0.95rem; transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; letter-spacing: 0.5px; }
+        .city-btn:hover, .city-btn.active { background: #fff; color: #000; border-color: #fff; box-shadow: 0 4px 15px rgba(255,255,255,0.15); }
+
+        /* İLAN IZGARASI */
+        .ads-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        .ad-card { background: var(--color-bg-blur); border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; position: relative; aspect-ratio: 3 / 4; cursor: pointer; transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease; }
+        .ad-card:hover { transform: translateY(-5px); border-color: rgba(255, 255, 255, 0.25); box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5); }
+
+        /* BOŞ SLOT */
+        .ad-card-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 20px 50px 20px; }
+        .ad-card-empty .card-logo { width: 90%; height: 75%; object-fit: contain; transition: transform 0.25s ease; }
+        .ad-card-empty:hover .card-logo { transform: scale(1.05); }
+        .ad-card-empty .card-overlay { position: absolute; bottom: 18px; width: 100%; text-align: center; }
+        .ad-card-empty .join-text { font-size: 1rem; font-weight: 600; color: rgba(255, 255, 255, 0.85); letter-spacing: 0.5px; transition: color 0.15s ease; }
+        .ad-card-empty:hover .join-text { color: var(--color-accent); }
+
+        /* DOLU SLOT */
+        .ad-card-filled { display: block; text-decoration: none; }
+        .ad-card-filled .main-ad-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.25s ease; }
+        .ad-card-filled:hover .main-ad-img { transform: scale(1.04); }
+        .ad-card-filled .card-gradient { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.75) 100%); z-index: 1; }
+        
+        .ad-card-filled .whatsapp-badge { position: absolute; top: 15px; right: 15px; background: var(--color-whatsapp); color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .ad-card-filled .card-info-footer { position: absolute; bottom: 15px; left: 0; width: 100%; padding: 0 15px; display: flex; justify-content: space-between; align-items: center; z-index: 2; }
+        .ad-card-filled .info-name { font-weight: 600; font-size: 1.05rem; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.6); max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ad-card-filled .info-city { font-size: 0.85rem; font-weight: 500; background: rgba(212, 175, 55, 0.25); color: var(--color-accent); border: 1px solid rgba(212, 175, 55, 0.4); padding: 3px 10px; border-radius: 20px; backdrop-filter: blur(5px); }
+
+        .loading-text { text-align: center; color: rgba(255,255,255,0.85); font-size: 1rem; grid-column: 1 / -1; padding: 30px; }
+
+        @media (max-width: 1024px) { .ads-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 768px) {
+            .container { padding: 20px 10px; }
+            .main-logo { max-height: 140px; }
+            .city-filter-container { margin-bottom: 25px; gap: 8px; }
+            .city-btn { padding: 8px 18px; font-size: 0.85rem; }
+            .ads-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .ad-card-empty { padding: 15px 15px 40px 15px; }
+            .ad-card-filled .card-info-footer { bottom: 10px; padding: 0 10px; }
+            .ad-card-filled .info-name { font-size: 0.9rem; }
+            .ad-card-filled .info-city { font-size: 0.75rem; padding: 3px 8px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-overlay"></div>
+
+    <div class="container">
+        <header class="header-section">
+            <div class="logo-area">
+                <img src="logo.png" alt="Elegant Logo" class="main-logo">
+            </div>
+        </header>
+
+        <div class="city-filter-container" id="cityFilters"></div>
+
+        <main class="ads-grid" id="adsGridContainer">
+            <div class="loading-text">Yükleniyor...</div>
+        </main>
+    </div>
+
+    <script>
+        let state = {
+            tgSettings: { username: "kullanici_adiniz", phone: "", preference: "username" },
+            ads: [],
+            cities: ["İstanbul", "Ankara", "İzmir"]
+        };
+
+        let activeCityFilter = "";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initIndex();
+        });
+
+        async function apiGetState() {
+            const response = await fetch('/api/state');
+            if (!response.ok) throw new Error('Veriler alınamadı.');
+            return await response.json();
+        }
+
+        async function initIndex() {
+            try {
+                state = await apiGetState();
+                activeCityFilter = state.cities.length > 0 ? state.cities[0].toUpperCase() : "";
+                renderCityFilters();
+                renderGrid();
+            } catch (error) {
+                console.error(error);
+                document.getElementById('adsGridContainer').innerHTML = '<div class="loading-text">Veriler yüklenemedi. Lütfen daha sonra tekrar deneyin.</div>';
+            }
+        }
+
+        function renderCityFilters() {
+            const filterContainer = document.getElementById('cityFilters');
+            if (!filterContainer) return;
+
+            filterContainer.innerHTML = '';
+            
+            state.cities.forEach(city => {
+                const cityUpper = city.toUpperCase();
+                filterContainer.innerHTML += `
+                    <button class="city-btn ${activeCityFilter === cityUpper ? 'active' : ''}" onclick="filterCity('${cityUpper}')">
+                        ${cityUpper}
+                    </button>
+                `;
+            });
+        }
+
+        /* Sekme geçiş hızını yavaşlatan kurgusal döngü yükleri temizlendi ve anlık render sağlandı */
+        function filterCity(cityUpper) {
+            if (activeCityFilter === cityUpper) return; // Zaten seçili olan şehre tekrar tıklanırsa işlem yapma
+            activeCityFilter = cityUpper;
+            renderCityFilters();
+            renderGrid();
+        }
+
+        function renderGrid() {
+            const container = document.getElementById('adsGridContainer');
+            container.innerHTML = '';
+
+            if (!activeCityFilter) return;
+
+            let targetAdminLink = `https://t.me/${state.tgSettings.username}`;
+            if (state.tgSettings.preference === 'phone' && state.tgSettings.phone) {
+                targetAdminLink = `https://wa.me/${state.tgSettings.phone.replace(/[^0-9]/g, '')}`;
+            }
+
+            // Performans için arama işlemini döngünün dışına alan kurgusal bir yapı da entegre edilebilir fakat 20 slot için bu direkt tarama anlıktır.
+            for (let i = 1; i <= 20; i++) {
+                const ad = state.ads.find(a => parseInt(a.slot) === i && a.city.toUpperCase() === activeCityFilter);
+
+                if (ad) {
+                    const cardImg = ad.images && ad.images.length > 0 ? ad.images[0] : 'logo.png';
+                    const cleanPhone = ad.phone ? ad.phone.replace(/[^0-9]/g, '') : '';
+                    
+                    const customMessage = encodeURIComponent(`Selam ${ad.name}, size Elegant Masaj Platformu sitesinden ulaşıyorum`);
+                    const whatsappLink = `https://wa.me/${cleanPhone}?text=${customMessage}`;
+
+                    container.innerHTML += `
+                        <div onclick="window.open('${whatsappLink}', '_blank')" class="ad-card ad-card-filled">
+                            <img src="${cardImg}" alt="${ad.name}" class="main-ad-img">
+                            <div class="card-gradient"></div>
+                            
+                            <div class="whatsapp-badge">
+                                <i class="fa-brands fa-whatsapp"></i>
+                            </div>
+
+                            <div class="card-info-footer">
+                                <div class="info-name">${ad.name}</div>
+                                <div class="info-city">${ad.city.toUpperCase()}</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML += `
+                        <div class="ad-card ad-card-empty" onclick="window.open('${targetAdminLink}', '_blank')">
+                            <img src="logo.png" alt="Logo" class="card-logo">
+                            <div class="card-overlay">
+                                <div class="join-text">Bize Katıl</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

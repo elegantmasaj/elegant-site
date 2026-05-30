@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elegant - Yönetim Paneli</title>
+    <link href="https://fonts.cdnfonts.com/css/tasa-explorer" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --font-main: 'TASA Explorer', sans-serif;
+            --color-bg-dark: #f8fafc; /* Açık premium arka plan */
+            --color-card-bg: #ffffff; /* Kartlar için beyaz temiz yüzey */
+            --color-border: rgba(0, 0, 0, 0.08);
+            --color-text-main: #0f172a; /* Harfler için koyu ton */
+            --color-text-muted: #475569; /* Yardımcı metinler için orta koyu ton */
+            --color-accent: #b45309; /* Açık temada daha okunaklı Elegant Gold/Amber */
+            --color-success: #10b981;
+            --color-danger: #ef4444;
+            --color-input-bg: #f1f5f9;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font-main); }
+        body { background-color: var(--color-bg-dark); color: var(--color-text-main); min-height: 100vh; padding: 20px; }
+        
+        .login-wrapper { max-width: 400px; margin: 100px auto; background: var(--color-card-bg); border: 1px solid var(--color-border); padding: 30px; border-radius: 16px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .admin-wrapper { max-width: 1100px; margin: 0 auto; display: none; }
+        
+        h2, h3 { margin-bottom: 20px; font-weight: 600; letter-spacing: 0.5px; color: var(--color-text-main); }
+        h2 i { color: var(--color-accent); margin-right: 10px; }
+        
+        .form-group { margin-bottom: 18px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: var(--color-text-muted); font-weight: 500; }
+        
+        .form-control { width: 100%; background: var(--color-input-bg); border: 1px solid var(--color-border); padding: 12px 16px; border-radius: 8px; color: var(--color-text-main); font-size: 0.95rem; transition: all 0.3s; }
+        .form-control:focus { outline: none; border-color: var(--color-accent); background: #fff; }
+        
+        /* Seçim kutularının metin renkleri */
+        select.form-control option { color: #000; background: #fff; }
+
+        .btn { background: var(--color-accent); color: #fff; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-danger { background: var(--color-danger); color: #fff; }
+        .btn-sm { padding: 6px 12px; font-size: 0.85rem; border-radius: 6px; }
+        
+        .panel-nav { display: flex; gap: 10px; margin-bottom: 30px; border-bottom: 1px solid var(--color-border); padding-bottom: 10px; }
+        .nav-btn { background: none; border: none; color: var(--color-text-muted); padding: 10px 20px; cursor: pointer; font-weight: 500; font-size: 1rem; transition: all 0.3s; border-radius: 6px; }
+        .nav-btn.active { color: #fff; background: var(--color-text-main); font-weight: 600; }
+        
+        .panel-section { display: none; background: var(--color-card-bg); border: 1px solid var(--color-border); padding: 25px; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); }
+        .panel-section.active { display: block; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        .item-row { display: flex; justify-content: space-between; align-items: center; background: var(--color-input-bg); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--color-border); margin-bottom: 10px; }
+        
+        /* Resim Önizleme Küpü */
+        .preview-container { margin-top: 10px; display: flex; gap: 10px; }
+        .preview-box { position: relative; width: 90px; height: 120px; border-radius: 6px; overflow: hidden; border: 1px solid var(--color-border); }
+        .preview-box img { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* Popup Bildirim */
+        .popup-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .elegant-popup { background: var(--color-card-bg); border-left: 4px solid var(--color-accent); color: var(--color-text-main); padding: 15px 20px; border-radius: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 12px; transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); min-width: 300px; border: 1px solid var(--color-border); }
+        .elegant-popup.show { transform: translateX(0); }
+        .elegant-popup.success { border-left-color: var(--color-success); }
+        .elegant-popup.danger { border-left-color: var(--color-danger); }
+        
+        /* Onay Modalı */
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:999; display:none; justify-content:center; align-items:center; opacity:0; transition: opacity 0.3s ease; }
+        .modal-overlay.show { display:flex; opacity:1; }
+        .elegant-modal { background: var(--color-card-bg); border: 1px solid var(--color-border); padding: 25px; border-radius: 14px; max-width: 450px; width: 90%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        
+        /* Tahsilat */
+        .tahsilat-slot-row { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: var(--color-input-bg); border: 1px solid var(--color-border); border-radius: 8px; margin-bottom: 12px; gap: 15px; }
+        .tahsilat-slot-info { display: flex; align-items: center; gap: 15px; }
+        .slot-badge { width: 32px; height: 32px; border-radius: 6px; background: rgba(0,0,0,0.05); border: 1px solid var(--color-border); display: flex; justify-content: center; align-items: center; font-weight: 600; font-size: 0.9rem; color: var(--color-text-main); }
+        .slot-badge.dolu { background: var(--color-accent); color: #fff; }
+        .tahsilat-form-inline { display: flex; gap: 8px; }
+        .tahsilat-form-inline input { width: 110px; background: #fff; }
+        .tahsilat-form-inline select { width: 100px; background: #fff; }
+        .payment-history-tag { display: inline-flex; align-items: center; gap: 5px; background: #fff; color: var(--color-text-main); padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; border: 1px solid var(--color-border); margin-right: 5px; margin-top: 5px; }
+        .tahsilat-list-row { display: grid; grid-template-columns: 1.2fr 1fr 1.3fr auto 130px; align-items: center; gap: 12px; padding: 15px; background: var(--color-input-bg); border: 1px solid var(--color-border); border-radius: 8px; margin-bottom: 12px; }
+        .payment-status { display:inline-flex; justify-content:center; align-items:center; padding:6px 10px; border-radius:20px; font-size:0.85rem; font-weight:600; }
+        .payment-status.paid { background:rgba(16,185,129,0.12); color:var(--color-success); border:1px solid rgba(16,185,129,0.25); }
+        .payment-status.pending { background:rgba(239,68,68,0.10); color:var(--color-danger); border:1px solid rgba(239,68,68,0.22); }
+        
+        /* Admin Panel İçin Şehir Filtre Butonları */
+        .admin-city-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
+        .admin-city-btn { background: var(--color-input-bg); border: 1px solid var(--color-border); color: var(--color-text-main); padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s; }
+        .admin-city-btn.active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .grid-2 { grid-template-columns: 1fr; }
+            .panel-nav { overflow-x: auto; }
+            .nav-btn { white-space: nowrap; padding: 10px 14px; }
+            .tahsilat-slot-row { flex-direction: column; align-items: stretch; }
+            .tahsilat-form-inline { flex-wrap: wrap; }
+            .tahsilat-form-inline input, .tahsilat-form-inline select { width: 100%; }
+            .tahsilat-list-row { grid-template-columns: 1fr; align-items: stretch; }
+            header { flex-direction: column; align-items: flex-start !important; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="popup-container" id="popupContainer"></div>
+
+    <div class="modal-overlay" id="confirmModal">
+        <div class="elegant-modal">
+            <h3 id="confirmTitle" style="color:var(--color-accent)">Onay</h3>
+            <p id="confirmMessage" style="color:var(--color-text-muted); margin-bottom:25px; font-size:0.95rem;"></p>
+            <div style="display:flex; justify-content:center; gap:10px;">
+                <button class="btn btn-danger" style="background:#64748b; color:#fff" id="btnConfirmCancel">İptal</button>
+                <button class="btn" id="btnConfirmSuccess">Onayla</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="login-wrapper" id="loginWrapper">
+        <h2><i class="fa-solid fa-lock"></i> Elegant Admin</h2>
+        <div class="form-group">
+            <label>Yönetici Şifresi</label>
+            <input type="password" id="loginPass" class="form-control" placeholder="••••••••" onkeydown="if(event.key==='Enter') tryLogin()">
+        </div>
+        <button class="btn" style="width:100%; justify-content:center;" onclick="tryLogin()">Giriş Yap</button>
+    </div>
+
+    <div class="admin-wrapper" id="adminWrapper">
+        <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+            <h2><i class="fa-solid fa-crown"></i> Elegant Yönetim Paneli</h2>
+            <button class="btn btn-danger btn-sm" onclick="logout()"><i class="fa-solid fa-power-off"></i> Güvenli Çıkış</button>
+        </header>
+
+        <nav class="panel-nav">
+            <button class="nav-btn active" onclick="switchTab('ilanlar', this)">İlan Yönetimi</button>
+            <button class="nav-btn" onclick="switchTab('tahsilat', this)">Tahsilat & Muhasebe</button>
+            <button class="nav-btn" onclick="switchTab('ayarlar', this)">Sistem Ayarları</button>
+        </nav>
+
+        <div class="panel-section active" id="sec-ilanlar">
+            <div style="background: var(--color-input-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--color-border); margin-bottom: 25px;">
+                <h3 style="color:var(--color-accent); margin-bottom: 15px;"><i class="fa-solid fa-map-location-dot"></i> Şehir Tanımlama</h3>
+                <div class="form-group" style="display:flex; gap:8px; margin-bottom: 15px;">
+                    <input type="text" id="new_city_name" class="form-control" style="background:#fff" placeholder="Örn: Antalya">
+                    <button class="btn" onclick="addCity()"><i class="fa-solid fa-plus"></i> Ekle</button>
+                </div>
+                <div id="cityListContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;"></div>
+            </div>
+
+            <div class="grid-2">
+                <div>
+                    <h3 id="formTaskTitle" style="color:var(--color-accent)">Yeni İlan Ekle / Güncelle</h3>
+                    <input type="hidden" id="ad_editing_id">
+                    
+                    <div class="form-group">
+                        <label>Şehir Seçimi</label>
+                        <select id="ad_city" class="form-control" onchange="updateSlotDropdown()"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Vitrin Slot Numarası (1 - 20)</label>
+                        <select id="ad_slot" class="form-control"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>İlan Sahibi Adı / Takma Adı</label>
+                        <input type="text" id="ad_name" class="form-control" placeholder="Örn: Simge">
+                    </div>
+                    <div class="form-group">
+                        <label>WhatsApp İletişim Numarası</label>
+                        <input type="text" id="ad_phone" class="form-control" placeholder="Örn: +905xxxxxxxxx">
+                    </div>
+                    <div class="form-group">
+                        <label>Vitrin Fotoğrafı (Sadece 1 Adet Yüklenebilir)</label>
+                        <input type="file" id="ad_file_input" class="form-control" accept="image/*" onchange="handleImageUpload(this)">
+                        <div class="preview-container" id="adImagesPreview"></div>
+                    </div>
+                    
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-danger" id="btnCancelEdit" style="display:none; background:#64748b;" onclick="resetAdForm()">İptal</button>
+                        <button class="btn" id="btnSaveAd" onclick="saveAd()"><i class="fa-solid fa-check"></i> İlanı Yayınla</button>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="color:var(--color-accent)">Aktif Vitrin İlanları</h3>
+                    <div class="admin-city-filters" id="adminCityFilters"></div>
+                    <div id="activeAdsContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-section" id="sec-tahsilat">
+            <h3><i class="fa-solid fa-wallet"></i> Slot Dönemlik Tahsilat Takibi</h3>
+            <div style="display:flex; gap:15px; margin-bottom:25px; flex-wrap:wrap; background:var(--color-input-bg); padding:15px; border-radius:10px; border:1px solid var(--color-border)">
+                <div style="flex:1; min-width:150px;">
+                    <label style="font-size:0.85rem; color:var(--color-text-muted); display:block; margin-bottom:5px;">Şehir</label>
+                    <select id="pay_filter_city" class="form-control" style="background:#fff" onchange="renderTahsilatGrid()"></select>
+                </div>
+                <div style="flex:1; min-width:120px;">
+                    <label style="font-size:0.85rem; color:var(--color-text-muted); display:block; margin-bottom:5px;">Dönem Ayı</label>
+                    <select id="pay_filter_month" class="form-control" style="background:#fff" onchange="renderTahsilatGrid()">
+                        <option value="Ocak">Ocak</option><option value="Şubat">Şubat</option><option value="Mart">Mart</option>
+                        <option value="Nisan">Nisan</option><option value="Mayıs" selected>Mayıs</option><option value="Haziran">Haziran</option>
+                        <option value="Temmuz">Temmuz</option><option value="Ağustos">Ağustos</option><option value="Eylül">Eylül</option>
+                        <option value="Ekim">Ekim</option><option value="Kasım">Kasım</option><option value="Aralık">Aralık</option>
+                    </select>
+                </div>
+                <div style="flex:1; min-width:100px;">
+                    <label style="font-size:0.85rem; color:var(--color-text-muted); display:block; margin-bottom:5px;">Dönem Yılı</label>
+                    <select id="pay_filter_year" class="form-control" style="background:#fff" onchange="renderTahsilatGrid()">
+                        <option value="2026" selected>2026</option><option value="2027">2027</option>
+                    </select>
+                </div>
+                <div style="display:flex; align-items:flex-end; font-weight:600; font-size:1.1rem; color:var(--color-accent);" id="tahsilatPeriodTotal">
+                    Seçili Dönem Toplamı: 0 TL
+                </div>
+            </div>
+            <div id="tahsilatSlotsContainer"></div>
+        </div>
+
+        <div class="panel-section" id="sec-ayarlar">
+            <div class="grid-2">
+                <div>
+                    <h3 style="color:var(--color-accent)"><i class="fa-solid fa-sliders"></i> Genel İletişim & Ayarlar</h3>
+                    <div class="form-group">
+                        <label>Boş Slot Tercihi</label>
+                        <select id="set_preference" class="form-control">
+                            <option value="username">Telegram Kullanıcı Adı Yönlendir</option>
+                            <option value="phone">WhatsApp Numarasına Yönlendir</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Merkezi Telegram Kullanıcı Adı (@ olmadan)</label>
+                        <input type="text" id="set_username" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Merkezi WhatsApp Telefon Numarası</label>
+                        <input type="text" id="set_phone" class="form-control">
+                    </div>
+                    <button class="btn" onclick="saveSettings()"><i class="fa-solid fa-floppy-disk"></i> Ayarları Kaydet</button>
+
+                    <hr style="border:none; border-top:1px solid var(--color-border); margin:30px 0;">
+                    
+                    <h3 style="color:var(--color-accent)"><i class="fa-solid fa-key"></i> Giriş Şifresini Değiştir</h3>
+                    <div class="form-group">
+                        <label>Yeni Yönetici Panel Şifresi</label>
+                        <input type="text" id="set_admin_password" class="form-control" placeholder="Yeni şifrenizi yazın">
+                    </div>
+                    <button class="btn" onclick="updateAdminPassword()"><i class="fa-solid fa-lock-open"></i> Şifreyi Güncelle</button>
+                </div>
+                <div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let state = {
+            adminPassword: "ElegantAdmin2026*",
+            tgSettings: { username: "kullanici_adiniz", phone: "", preference: "username" },
+            ads: [],
+            cities: ["İstanbul", "Ankara", "İzmir"],
+            payments: []
+        };
+
+        let temporaryImages = [];
+        let confirmCallback = null;
+        let adminActiveCityFilter = "";
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadState();
+        });
+
+        async function loadState() {
+            try {
+                const response = await fetch('/api/state');
+                if (!response.ok) throw new Error('Veriler alınamadı.');
+                state = await response.json();
+
+                if(!state.adminPassword) state.adminPassword = "ElegantAdmin2026*";
+                if(!state.cities) state.cities = ["İstanbul", "Ankara", "İzmir"];
+                if(!state.ads) state.ads = [];
+                if(!state.payments) state.payments = [];
+                if(!state.tgSettings) state.tgSettings = { username: "kullanici_adiniz", phone: "", preference: "username" };
+
+                if(!adminActiveCityFilter && state.cities.length > 0) {
+                    adminActiveCityFilter = state.cities[0].toUpperCase();
+                }
+            } catch (e) {
+                console.error(e);
+                showPopup('Backend bağlantısı kurulamadı. Lütfen server.js çalışıyor mu kontrol edin.', 'danger');
+            }
+        }
+
+        async function apiPost(url, data) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || 'İşlem başarısız oldu.');
+            }
+
+            if (result.state) {
+                state = result.state;
+                if(state.cities.length > 0 && !state.cities.some(city => city.toUpperCase() === adminActiveCityFilter)) {
+                    adminActiveCityFilter = state.cities[0].toUpperCase();
+                }
+            }
+
+            return result;
+        }
+
+        function showPopup(message, type = 'info') {
+            const container = document.getElementById('popupContainer');
+            const popup = document.createElement('div');
+            popup.className = `elegant-popup ${type}`;
+            
+            let icon = 'fa-info-circle';
+            if(type === 'success') icon = 'fa-check-circle';
+            if(type === 'danger') icon = 'fa-exclamation-circle';
+
+            popup.innerHTML = `
+                <i class="fa-solid ${icon}"></i>
+                <div class="elegant-popup-content">${message}</div>
+                <div class="elegant-popup-close" style="cursor:pointer; margin-left:auto;" onclick="this.parentElement.remove()">&times;</div>
+            `;
+            container.appendChild(popup);
+            setTimeout(() => popup.classList.add('show'), 50);
+            setTimeout(() => {
+                popup.classList.remove('show');
+                setTimeout(() => popup.remove(), 400);
+            }, 4000);
+        }
+
+        function showConfirm(title, message, onConfirm) {
+            const modal = document.getElementById('confirmModal');
+            document.getElementById('confirmTitle').innerText = title;
+            document.getElementById('confirmMessage').innerText = message;
+            modal.classList.add('show');
+            confirmCallback = onConfirm;
+        }
+
+        document.getElementById('btnConfirmCancel').addEventListener('click', () => {
+            document.getElementById('confirmModal').classList.remove('show');
+            confirmCallback = null;
+        });
+
+        document.getElementById('btnConfirmSuccess').addEventListener('click', async () => {
+            document.getElementById('confirmModal').classList.remove('show');
+            if(confirmCallback) await confirmCallback();
+            confirmCallback = null;
+        });
+
+        function tryLogin() {
+            const pass = document.getElementById('loginPass').value;
+            if(pass === state.adminPassword) {
+                document.getElementById('loginWrapper').style.display = 'none';
+                document.getElementById('adminWrapper').style.display = 'block';
+                initPanel();
+                showPopup('Yönetim paneline başarıyla giriş yapıldı.', 'success');
+            } else {
+                showPopup('Hatalı Şifre Yapılandırılması!', 'danger');
+            }
+        }
+
+        function logout() { location.reload(); }
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.panel-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`sec-${tabId}`).classList.add('active');
+            btn.classList.add('active');
+            if(tabId === 'tahsilat') renderTahsilatGrid();
+            if(tabId === 'ilanlar') { renderAdsList(); renderAdminCityFilters(); }
+        }
+
+        function initPanel() {
+            document.getElementById('set_preference').value = state.tgSettings.preference;
+            document.getElementById('set_username').value = state.tgSettings.username;
+            document.getElementById('set_phone').value = state.tgSettings.phone;
+            document.getElementById('set_admin_password').value = state.adminPassword;
+
+            document.getElementById('pay_filter_month').value = "Mayıs";
+            document.getElementById('pay_filter_year').value = "2026";
+
+            renderCities();
+            updateSlotDropdown();
+            renderAdminCityFilters();
+            renderAdsList();
+        }
+
+        async function saveSettings() {
+            try {
+                const nextSettings = {
+                    username: document.getElementById('set_username').value,
+                    phone: document.getElementById('set_phone').value,
+                    preference: document.getElementById('set_preference').value
+                };
+
+                await apiPost('/api/settings/save', {
+                    adminPassword: state.adminPassword,
+                    tgSettings: nextSettings
+                });
+
+                document.getElementById('set_preference').value = state.tgSettings.preference;
+                document.getElementById('set_username').value = state.tgSettings.username;
+                document.getElementById('set_phone').value = state.tgSettings.phone;
+                showPopup('Genel iletişim ayarları başarıyla güncellendi.', 'success');
+            } catch (e) {
+                showPopup(e.message, 'danger');
+            }
+        }
+
+        async function updateAdminPassword() {
+            const newPass = document.getElementById('set_admin_password').value.trim();
+            if(!newPass) return showPopup('Lütfen geçerli bir şifre yazın.', 'danger');
+
+            try {
+                await apiPost('/api/settings/save', {
+                    adminPassword: newPass,
+                    tgSettings: state.tgSettings
+                });
+                document.getElementById('set_admin_password').value = state.adminPassword;
+                showPopup('Giriş şifresi başarıyla güncellendi. Bir sonraki girişte geçerli olacaktır.', 'success');
+            } catch (e) {
+                showPopup(e.message, 'danger');
+            }
+        }
+
+        function renderCities() {
+            const container = document.getElementById('cityListContainer');
+            container.innerHTML = '';
+            state.cities.forEach((city, index) => {
+                container.innerHTML += `
+                    <div class="item-row" style="margin-bottom:0">
+                        <span>${city}</span>
+                        <button class="btn btn-danger btn-sm" onclick="deleteCity(${index}, '${city}')"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+            });
+            
+            const adCitySelect = document.getElementById('ad_city');
+            adCitySelect.innerHTML = '';
+            state.cities.forEach(city => {
+                adCitySelect.innerHTML += `<option value="${city}">${city}</option>`;
+            });
+
+            const payCitySelect = document.getElementById('pay_filter_city');
+            payCitySelect.innerHTML = '';
+            state.cities.forEach(city => {
+                payCitySelect.innerHTML += `<option value="${city}">${city}</option>`;
+            });
+        }
+
+        async function addCity() {
+            const input = document.getElementById('new_city_name');
+            const name = input.value.trim();
+            if(!name) return;
+            if(state.cities.includes(name)) return showPopup('Bu şehir zaten ekli.', 'danger');
+            
+            try {
+                await apiPost('/api/city/add', { name });
+                input.value = '';
+                renderCities();
+                updateSlotDropdown();
+                renderAdminCityFilters();
+                renderAdsList();
+                showPopup(`${name} şehri başarıyla eklendi.`, 'success');
+            } catch (e) {
+                showPopup(e.message, 'danger');
+            }
+        }
+
+        function deleteCity(index, cityName) {
+            showConfirm('Şehri Sil', `${cityName} şehrini silmek istediğinize emin misiniz?`, async function() {
+                try {
+                    await apiPost('/api/city/delete', { name: cityName });
+                    renderCities();
+                    updateSlotDropdown();
+                    renderAdminCityFilters();
+                    renderAdsList();
+                    showPopup('Şehir ve şehre bağlı ilanlar sistemden kaldırıldı.', 'success');
+                } catch (e) {
+                    showPopup(e.message, 'danger');
+                }
+            });
+        }
+
+        function renderAdminCityFilters() {
+            const filterContainer = document.getElementById('adminCityFilters');
+            if(!filterContainer) return;
+
+            if(state.cities.length > 0 && !state.cities.some(city => city.toUpperCase() === adminActiveCityFilter)) {
+                adminActiveCityFilter = state.cities[0].toUpperCase();
+            }
+            
+            let html = '';
+            state.cities.forEach(city => {
+                html += `<button class="admin-city-btn ${adminActiveCityFilter === city.toUpperCase() ? 'active' : ''}" onclick="filterAdminAds('${city.toUpperCase()}')">${city}</button>`;
+            });
+            filterContainer.innerHTML = html;
+        }
+
+        function filterAdminAds(cityUpper) {
+            adminActiveCityFilter = cityUpper;
+            renderAdminCityFilters();
+            renderAdsList();
+        }
+
+        function updateSlotDropdown() {
+            const currentCity = document.getElementById('ad_city').value;
+            const select = document.getElementById('ad_slot');
+            const editingId = document.getElementById('ad_editing_id').value;
+            select.innerHTML = '';
+            
+            if(!currentCity) return;
+
+            for(let i=1; i<=20; i++) {
+                const existing = state.ads.find(a => parseInt(a.slot) === i && a.city === currentCity);
+                let label = `Slot ${i} (Boş)`;
+                if (existing) {
+                    label = existing.id === editingId ? `Slot ${i} (Şu An Düzenlenen İlan)` : `Slot ${i} (Dolu - ${existing.name})`;
+                }
+                select.innerHTML += `<option value="${i}">${label}</option>`;
+            }
+        }
+
+        function handleImageUpload(input) {
+            const files = Array.from(input.files);
+            if(files.length === 0) return;
+
+            const file = files[0];
+            if(!file.type.startsWith('image/')) {
+                input.value = '';
+                return showPopup('Lütfen geçerli bir görsel dosyası seçin.', 'danger');
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const maxWidth = 700;
+                    const maxHeight = 950;
+                    const ratio = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+
+                    canvas.width = Math.round(img.width * ratio);
+                    canvas.height = Math.round(img.height * ratio);
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    const compressedImage = canvas.toDataURL('image/jpeg', 0.68);
+
+                    temporaryImages = [compressedImage];
+                    renderImagePreviews();
+                    showPopup('Görsel başarıyla yüklendi ve optimize edildi.', 'success');
+                };
+
+                img.onerror = function() {
+                    showPopup('Görsel okunamadı. Farklı bir fotoğraf deneyin.', 'danger');
+                };
+
+                img.src = e.target.result;
+            };
+
+            reader.onerror = function() {
+                showPopup('Dosya okunurken hata oluştu.', 'danger');
+            };
+
+            reader.readAsDataURL(file);
+            input.value = '';
+        }
+
+        function renderImagePreviews() {
+            const container = document.getElementById('adImagesPreview');
+            container.innerHTML = '';
+            temporaryImages.forEach((src, idx) => {
+                container.innerHTML += `
+                    <div class="preview-box">
+                        <img src="${src}">
+                        <div style="position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.8); width:18px; height:18px; border-radius:50%; display:flex; justify-content:center; align-items:center; cursor:pointer; font-size:10px; color:red;" onclick="removeLoadedImage(${idx})">&times;</div>
+                    </div>
+                `;
+            });
+        }
+
+        function removeLoadedImage(index) {
+            temporaryImages = [];
+            renderImagePreviews();
+        }
+
+        async function saveAd() {
+            const id = document.getElementById('ad_editing_id').value;
+            const city = document.getElementById('ad_city').value;
+            const slot = document.getElementById('ad_slot').value;
+            const name = document.getElementById('ad_name').value.trim();
+            const phone = document.getElementById('ad_phone').value.trim();
+
+            if(!city) return showPopup('Lütfen şehir seçin.', 'danger');
+            if(!slot) return showPopup('Lütfen slot seçin.', 'danger');
+            if(!name || !phone) return showPopup('Lütfen İsim ve Telefon alanlarını doldurun.', 'danger');
+            if(temporaryImages.length === 0) return showPopup('Lütfen vitrin için 1 adet resim yükleyin.', 'danger');
+
+            const now = new Date();
+            const dateStr = String(now.getDate()).padStart(2, '0') + '.' + 
+                            String(now.getMonth() + 1).padStart(2, '0') + '.' + 
+                            now.getFullYear() + ' ' + 
+                            String(now.getHours()).padStart(2, '0') + ':' + 
+                            String(now.getMinutes()).padStart(2, '0');
+
+            const currentAd = id ? state.ads.find(a => a.id === id) : null;
+
+            try {
+                await apiPost('/api/ad/save', {
+                    id,
+                    slot,
+                    name,
+                    city,
+                    phone,
+                    images: temporaryImages,
+                    date: currentAd?.date || dateStr
+                });
+
+                resetAdForm();
+                renderCities();
+                renderAdsList();
+                updateSlotDropdown();
+                showPopup('İlan başarıyla kaydedildi. Index sayfasında görünecektir.', 'success');
+            } catch (e) {
+                showPopup(e.message, 'danger');
+            }
+        }
+
+        function renderAdsList() {
+            const container = document.getElementById('activeAdsContainer');
+            container.innerHTML = '';
+
+            let filteredAds = [...state.ads];
+            if(adminActiveCityFilter) {
+                filteredAds = filteredAds.filter(a => a.city.toUpperCase() === adminActiveCityFilter);
+            }
+
+            const sortedAds = filteredAds.sort((a,b) => {
+                if(a.city !== b.city) return a.city.localeCompare(b.city);
+                return parseInt(a.slot) - parseInt(b.slot);
+            });
+
+            if(sortedAds.length === 0) {
+                container.innerHTML = '<p style="color:var(--color-text-muted); font-size:0.9rem;">Henüz filtrelenmiş aktif ilan bulunmuyor.</p>';
+                return;
+            }
+
+            sortedAds.forEach(ad => {
+                const dateLabel = ad.date ? `<div style="font-size:0.75rem; color:var(--color-text-muted); margin-top:3px;"><i class="fa-regular fa-calendar-days"></i> Tarih: ${ad.date}</div>` : '';
+                
+                container.innerHTML += `
+                    <div class="item-row" style="align-items: flex-start; text-align:left;">
+                        <div style="display:flex; gap:12px; align-items:center;">
+                            <div style="background:var(--color-accent); color:#fff; font-weight:600; width:30px; height:30px; display:flex; justify-content:center; align-items:center; border-radius:6px; font-size:0.85rem;">S${ad.slot}</div>
+                            <div>
+                                <div style="font-weight:600;">${ad.name} <span style="font-size:0.8rem; color:var(--color-accent)">(${ad.city})</span></div>
+                                <div style="font-size:0.8rem; color:var(--color-text-muted)">Tel: ${ad.phone}</div>
+                                ${dateLabel} </div>
+                        </div>
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn btn-sm" style="background:var(--color-text-main); color:#fff;" onclick="editAd('${ad.id}')"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteAd('${ad.id}', '${ad.name}')"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function editAd(id) {
+            const ad = state.ads.find(a => a.id === id);
+            if(!ad) return;
+
+            document.getElementById('formTaskTitle').innerText = "İlanı Güncelle (" + ad.city + " - Slot: " + ad.slot + ")";
+            document.getElementById('ad_editing_id').value = ad.id;
+            document.getElementById('ad_city').value = ad.city;
+            updateSlotDropdown();
+            
+            document.getElementById('ad_slot').value = ad.slot;
+            document.getElementById('ad_name').value = ad.name;
+            document.getElementById('ad_phone').value = ad.phone;
+            
+            temporaryImages = ad.images ? [...ad.images] : [];
+            renderImagePreviews();
+
+            document.getElementById('btnCancelEdit').style.display = 'inline-flex';
+            document.getElementById('btnSaveAd').innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Kaydet';
+        }
+
+        function deleteAd(id, adName) {
+            showConfirm('İlanı Kaldır', `${adName} isimli ilanı kaldırmak istediğinize emin misiniz?`, async function() {
+                try {
+                    await apiPost('/api/ad/delete', { id });
+                    renderAdsList();
+                    updateSlotDropdown();
+                    resetAdForm();
+                    showPopup('İlan başarıyla kaldırıldı.', 'success');
+                } catch (e) {
+                    showPopup(e.message, 'danger');
+                }
+            });
+        }
+
+        function resetAdForm() {
+            document.getElementById('formTaskTitle').innerText = "Yeni İlan Ekle / Güncelle";
+            document.getElementById('ad_editing_id').value = '';
+            document.getElementById('ad_name').value = '';
+            document.getElementById('ad_phone').value = '';
+            temporaryImages = [];
+            document.getElementById('adImagesPreview').innerHTML = '';
+            document.getElementById('btnCancelEdit').style.display = 'none';
+            document.getElementById('btnSaveAd').innerHTML = '<i class="fa-solid fa-check"></i> İlanı Yayınla';
+            updateSlotDropdown();
+        }
+
+        function renderTahsilatGrid() {
+            const filterCity = document.getElementById('pay_filter_city').value;
+            const filterMonth = document.getElementById('pay_filter_month').value;
+            const filterYear = document.getElementById('pay_filter_year').value;
+            const targetPeriodKey = `${filterMonth}_${filterYear}`;
+            const container = document.getElementById('tahsilatSlotsContainer');
+            container.innerHTML = '';
+
+            if(!filterCity) return;
+            let periodTotalSum = 0;
+
+            container.innerHTML += `
+                <div class="tahsilat-list-row" style="background:#fff; font-weight:600; color:var(--color-text-muted);">
+                    <div>İlan Veren</div>
+                    <div>Tahsilat Tarihi</div>
+                    <div>Tutar</div>
+                    <div>Tahsilat</div>
+                    <div>Durum</div>
+                </div>
+            `;
+
+            for (let i = 1; i <= 20; i++) {
+                const currentAd = state.ads.find(a => parseInt(a.slot) === i && a.city === filterCity);
+                if (currentAd) {
+                    const periodPayments = state.payments.filter(p => parseInt(p.slot) === i && p.city === filterCity && p.period === targetPeriodKey);
+                    const paidTotal = periodPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+                    periodTotalSum += paidTotal;
+
+                    const isPaid = periodPayments.length > 0;
+                    const statusHtml = isPaid
+                        ? `<span class="payment-status paid">Tahsil Edildi</span>`
+                        : `<span class="payment-status pending">Beklemede</span>`;
+
+                    const paymentDateInfo = isPaid
+                        ? periodPayments.map(p => `
+                            <div style="font-size:0.9rem; color:var(--color-text-muted); margin-bottom:4px;">${p.date || '-'}</div>
+                        `).join('')
+                        : `<span style="font-size:0.9rem; color:var(--color-text-muted);">-</span>`;
+
+                    const paymentInfo = isPaid
+                        ? periodPayments.map(p => `
+                            <div class="payment-history-tag">
+                                <span>${Number(p.amount || 0).toLocaleString('tr-TR')} TL</span>
+                                <i class="fa-solid fa-circle-xmark" style="cursor:pointer; color:var(--color-danger);" onclick="deletePeriodPayment('${p.id}')"></i>
+                            </div>
+                        `).join('')
+                        : `<input type="number" id="amt_${filterCity}_${i}" class="form-control" style="background:#fff; max-width:150px;" placeholder="Tutar">`;
+
+                    const collectButton = isPaid
+                        ? `<button class="btn btn-sm" style="background:#64748b; color:#fff;" disabled>Tahsil Edildi</button>`
+                        : `<button class="btn btn-sm" onclick="savePeriodPayment('${filterCity}', ${i}, '${currentAd.name}')">Tahsilat Et</button>`;
+
+                    container.innerHTML += `
+                        <div class="tahsilat-list-row">
+                            <div>
+                                <strong>${currentAd.name}</strong> <span style="font-size:0.8rem; color:var(--color-accent);">S${i}</span>
+                                <div style="font-size:0.85rem; color:var(--color-text-muted); margin-top:4px;">İlan Tarihi: ${currentAd.date || 'Tarih yok'}</div>
+                            </div>
+                            <div>${paymentDateInfo}</div>
+                            <div>${paymentInfo}</div>
+                            <div>${collectButton}</div>
+                            <div>${statusHtml}</div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML += `
+                        <div class="tahsilat-list-row">
+                            <div><strong>Slot ${i}</strong></div>
+                            <div style="color:var(--color-text-muted);">-</div>
+                            <div style="color:var(--color-text-muted); font-style:italic;">Boş Slot</div>
+                            <div>-</div>
+                            <div><span class="payment-status pending">Beklemede</span></div>
+                        </div>
+                    `;
+                }
+            }
+            document.getElementById('tahsilatPeriodTotal').innerText = `Seçili Dönem Toplamı: ${periodTotalSum.toLocaleString('tr-TR')} TL`;
+        }
+
+        async function savePeriodPayment(city, slot, name) {
+            const filterMonth = document.getElementById('pay_filter_month').value;
+            const filterYear = document.getElementById('pay_filter_year').value;
+            const amountInput = document.getElementById(`amt_${city}_${slot}`);
+            const amount = parseFloat(amountInput.value);
+
+            if(isNaN(amount) || amount <= 0) return showPopup('Lütfen geçerli bir tutar yazınız.', 'danger');
+
+            const now = new Date();
+            const dateStr = String(now.getDate()).padStart(2, '0') + '.' + 
+                            String(now.getMonth() + 1).padStart(2, '0') + '.' + 
+                            now.getFullYear() + ' ' + 
+                            String(now.getHours()).padStart(2, '0') + ':' + 
+                            String(now.getMinutes()).padStart(2, '0');
+
+            try {
+                await apiPost('/api/payment/save', {
+                    city,
+                    slot,
+                    name,
+                    period: `${filterMonth}_${filterYear}`,
+                    amount,
+                    method: 'Tahsilat',
+                    date: dateStr
+                });
+
+                renderTahsilatGrid();
+                showPopup('Tahsilat başarıyla kaydedildi.', 'success');
+            } catch (e) {
+                showPopup(e.message, 'danger');
+            }
+        }
+
+        function deletePeriodPayment(paymentId) {
+            showConfirm('Ödemeyi Sil', 'Bu ödeme kaydını listeden kalıcı olarak silmek istediğinize emin misiniz?', async function() {
+                try {
+                    await apiPost('/api/payment/delete', { id: paymentId });
+                    renderTahsilatGrid();
+                    showPopup('Ödeme kaydı silindi.', 'success');
+                } catch (e) {
+                    showPopup(e.message, 'danger');
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>
