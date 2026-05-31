@@ -1,10 +1,15 @@
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
+const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const supabase = createClient(
+  'https://zmgrjswtlwsfepigjfen.supabase.co',
+  'sb_publishable_eYGD3so8L0-embnp4cGZ-w_cImKoDME'
+);
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
