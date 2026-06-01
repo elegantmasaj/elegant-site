@@ -1,319 +1,291 @@
 const express = require('express');
 const cors = require('cors');
-const sqlite3 = require('sqlite3').verbose();
-const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const supabase = createClient(
-  'https://zmgrjswtlwsfepigjfen.supabase.co',
-  'sb_publishable_eYGD3so8L0-embnp4cGZ-w_cImKoDME'
-);
+
+const SUPABASE_URL = 'https://xdhashkodkwiwlfschdv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_u9FBdDWb1blk_VZWaQnBpw_dSxo_oU9'
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
 app.use(express.static(__dirname));
 
-const dbPath = process.env.DB_PATH || path.join(__dirname, 'database.sqlite');
-const db = new sqlite3.Database(dbPath);
+async function ensureDefaults() {
+    await supabase.from('settings').upsert({
+        id: 1,
+        adminpassword: 'ElegantAdmin2026*',
+        tgusername: 'kullanici_adiniz',
+        tgphone: '',
+        tgpreference: 'username'
+    }, { onConflict: 'id' });
 
-db.serialize(() => {
-    db.run(`
-        CREATE TABLE IF NOT EXISTS settings (
-            id INTEGER PRIMARY KEY CHECK (id = 1),
-            adminPassword TEXT DEFAULT 'ElegantAdmin2026*',
-            tgUsername TEXT DEFAULT 'kullanici_adiniz',
-            tgPhone TEXT DEFAULT '',
-            tgPreference TEXT DEFAULT 'username'
-        )
-    `);
+    await supabase.from('cities').upsert([
+        { name: 'İstanbul' },
+        { name: 'Ankara' },
+        { name: 'İzmir' }
+    ], { onConflict: 'name' });
+}
 
-    db.run(`
-        CREATE TABLE IF NOT EXISTS cities (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE NOT NULL
-        )
-    `);
+async function getState() {
+    const { data: settingsRows, error: settingsError } = await supabase
+        .from('settings')
+        .select('*')
+        .eq('id', 1)
+        .limit(1);
 
-    db.run(`
-        CREATE TABLE IF NOT EXISTS ads (
-            id TEXT PRIMARY KEY,
-            slot INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            city TEXT NOT NULL,
-            phone TEXT NOT NULL,
-            image TEXT,
-            date TEXT
-        )
-    `);
+        const settings = settingsRows?.[0];
 
-    db.run(`
-        CREATE TABLE IF NOT EXISTS payments (
-            id TEXT PRIMARY KEY,
-            city TEXT NOT NULL,
-            slot INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            period TEXT NOT NULL,
-            amount REAL NOT NULL,
-            method TEXT DEFAULT 'Tahsilat',
-            date TEXT
-        )
-    `);
+    if (settingsError) throw settingsError;
 
-    db.run(`ALTER TABLE payments ADD COLUMN date TEXT`, (err) => {
-    if (err && !String(err.message).includes('duplicate column name')) {
-        console.error('payments date kolon hatası:', err.message);
-    }
-  });
+    const { data: cities, error: citiesError } = await supabase
+        .from('cities')
+        .select('name')
+        .order('id', { ascending: true });
 
-    db.run(`
-        INSERT OR IGNORE INTO settings 
-        (id, adminPassword, tgUsername, tgPhone, tgPreference)
-        VALUES 
-        (1, 'ElegantAdmin2026*', 'kullanici_adiniz', '', 'username')
-    `);
+    if (citiesError) throw citiesError;
 
-    db.run(`INSERT OR IGNORE INTO cities (name) VALUES ('İstanbul')`);
-    db.run(`INSERT OR IGNORE INTO cities (name) VALUES ('Ankara')`);
-    db.run(`INSERT OR IGNORE INTO cities (name) VALUES ('İzmir')`);
-});
+    const { data: ads, error: adsError } = await supabase
+        .from('ads')
+        .select('*')
+        .order('city', { ascending: true })
+        .order('slot', { ascending: true });
 
-function getState(callback) {
-    const state = {};
+    if (adsError) throw adsError;
 
-    db.get(`SELECT * FROM settings WHERE id = 1`, [], (err, settings) => {
-        if (err) return callback(err);
+    const { data: payments, error: paymentsError } = await supabase
+        .from('payments')
+        .select('*');
 
-        state.adminPassword = settings.adminPassword;
-        state.tgSettings = {
-            username: settings.tgUsername,
-            phone: settings.tgPhone,
-            preference: settings.tgPreference
-        };
+    if (paymentsError) throw paymentsError;
 
-        db.all(`SELECT name FROM cities ORDER BY id ASC`, [], (err, cities) => {
-            if (err) return callback(err);
-
-            state.cities = cities.map(c => c.name);
-
-            db.all(`SELECT * FROM ads ORDER BY city ASC, slot ASC`, [], (err, ads) => {
-                if (err) return callback(err);
-
-                state.ads = ads.map(ad => ({
-                    id: ad.id,
-                    slot: ad.slot,
-                    name: ad.name,
-                    city: ad.city,
-                    phone: ad.phone,
-                    images: ad.image ? [ad.image] : [],
-                    date: ad.date
-                }));
-
-                db.all(`SELECT * FROM payments`, [], (err, payments) => {
-                    if (err) return callback(err);
-
-                    state.payments = payments;
-                    callback(null, state);
-                });
-            });
-        });
-    });
+    return {
+        adminPassword: settings?.adminpassword || 'ElegantAdmin2026*',
+        tgSettings: {
+            username: settings?.tgusername || 'kullanici_adiniz',
+            phone: settings?.tgphone || '',
+            preference: settings?.tgpreference || 'username'
+        },
+        cities: (cities || []).map(c => c.name),
+        ads: (ads || []).map(ad => ({
+            id: ad.id,
+            slot: ad.slot,
+            name: ad.name,
+            city: ad.city,
+            phone: ad.phone,
+            images: ad.image ? [ad.image] : [],
+            date: ad.date
+        })),
+        payments: payments || []
+    };
 }
 
 app.get('/api/test', (req, res) => {
     res.json({
         success: true,
-        message: 'Elegant backend çalışıyor.'
+        message: 'Elegant backend Supabase ile çalışıyor.'
     });
 });
 
-app.get('/api/state', (req, res) => {
-    getState((err, state) => {
-        if (err) return res.status(500).json({ success: false, error: err.message });
+app.get('/api/state', async (req, res) => {
+    try {
+        const state = await getState();
         res.json(state);
-    });
-});
-
-app.post('/api/settings/save', (req, res) => {
-    const { adminPassword, tgSettings } = req.body;
-
-    db.run(
-        `
-        UPDATE settings 
-        SET adminPassword = ?, tgUsername = ?, tgPhone = ?, tgPreference = ?
-        WHERE id = 1
-        `,
-        [
-            adminPassword || 'ElegantAdmin2026*',
-            tgSettings?.username || '',
-            tgSettings?.phone || '',
-            tgSettings?.preference || 'username'
-        ],
-        function (err) {
-            if (err) return res.status(500).json({ success: false, error: err.message });
-            getState((err, state) => {
-                if (err) return res.status(500).json({ success: false, error: err.message });
-                res.json({ success: true, state });
-            });
-        }
-    );
-});
-
-app.post('/api/city/add', (req, res) => {
-    const { name } = req.body;
-    const cleanName = String(name || '').trim();
-
-    if (!cleanName) {
-        return res.status(400).json({ success: false, error: 'Şehir adı boş olamaz.' });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
     }
-
-    db.run(
-        `INSERT INTO cities (name) VALUES (?)`,
-        [cleanName],
-        function (err) {
-            if (err) {
-                return res.status(400).json({ success: false, error: 'Bu şehir zaten ekli olabilir.' });
-            }
-
-            getState((err, state) => {
-                if (err) return res.status(500).json({ success: false, error: err.message });
-                res.json({ success: true, state });
-            });
-        }
-    );
 });
 
-app.post('/api/city/delete', (req, res) => {
-    const { name } = req.body;
-    const cleanName = String(name || '').trim();
+app.post('/api/settings/save', async (req, res) => {
+    try {
+        const { adminPassword, tgSettings } = req.body;
 
-    db.serialize(() => {
-        db.run(`DELETE FROM cities WHERE name = ?`, [cleanName]);
-        db.run(`DELETE FROM ads WHERE city = ?`, [cleanName]);
-        db.run(`DELETE FROM payments WHERE city = ?`, [cleanName], function (err) {
-            if (err) return res.status(500).json({ success: false, error: err.message });
+        const { error } = await supabase.from('settings').upsert({
+            id: 1,
+            adminpassword: adminPassword || 'ElegantAdmin2026*',
+            tgusername: tgSettings?.username || '',
+            tgphone: tgSettings?.phone || '',
+            tgpreference: tgSettings?.preference || 'username'
+        }, { onConflict: 'id' });
 
-            getState((err, state) => {
-                if (err) return res.status(500).json({ success: false, error: err.message });
-                res.json({ success: true, state });
-            });
-        });
-    });
-});
+        if (error) throw error;
 
-app.post('/api/ad/save', (req, res) => {
-    const { id, slot, name, city, phone, images, date } = req.body;
-
-    if (!slot || !name || !city || !phone || !images || images.length === 0) {
-        return res.status(400).json({ success: false, error: 'Eksik ilan bilgisi.' });
+        const state = await getState();
+        res.json({ success: true, state });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
     }
+});
 
-    const adId = id || '_' + Math.random().toString(36).substr(2, 9);
-    const image = images[0];
-
-    db.get(
-        `SELECT * FROM ads WHERE slot = ? AND city = ? AND id != ?`,
-        [slot, city, adId],
-        (err, existing) => {
-            if (err) return res.status(500).json({ success: false, error: err.message });
-
-            if (existing) {
-                return res.status(400).json({
-                    success: false,
-                    error: `Seçtiğiniz ${city} Slot ${slot} şu anda ${existing.name} tarafından kullanılıyor.`
-                });
-            }
-
-            db.run(
-                `
-                INSERT INTO ads (id, slot, name, city, phone, image, date)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    slot = excluded.slot,
-                    name = excluded.name,
-                    city = excluded.city,
-                    phone = excluded.phone,
-                    image = excluded.image,
-                    date = ads.date
-                `,
-                [adId, slot, name, city, phone, image, date || ''],
-                function (err) {
-                    if (err) return res.status(500).json({ success: false, error: err.message });
-
-                    getState((err, state) => {
-                        if (err) return res.status(500).json({ success: false, error: err.message });
-                        res.json({ success: true, state });
-                    });
-                }
-            );
+app.post('/api/city/add', async (req, res) => {
+    try {
+        const cleanName = String(req.body.name || '').trim();
+        if (!cleanName) {
+            return res.status(400).json({ success: false, error: 'Şehir adı boş olamaz.' });
         }
-    );
-});
 
-app.post('/api/ad/delete', (req, res) => {
-    const { id } = req.body;
+        const { error } = await supabase
+            .from('cities')
+            .insert({ name: cleanName });
 
-    db.run(`DELETE FROM ads WHERE id = ?`, [id], function (err) {
-        if (err) return res.status(500).json({ success: false, error: err.message });
+        if (error) {
+            return res.status(400).json({ success: false, error: 'Bu şehir zaten ekli olabilir.' });
+        }
 
-        getState((err, state) => {
-            if (err) return res.status(500).json({ success: false, error: err.message });
-            res.json({ success: true, state });
-        });
-    });
-});
-
-app.post('/api/payment/save', (req, res) => {
-    const { city, slot, name, period, amount, method, date } = req.body;
-
-    if (!city || !slot || !name || !period || !amount) {
-        return res.status(400).json({ success: false, error: 'Eksik tahsilat bilgisi.' });
+        const state = await getState();
+        res.json({ success: true, state });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
     }
+});
 
-    const paymentId = 'pay_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+app.post('/api/city/delete', async (req, res) => {
+    try {
+        const cleanName = String(req.body.name || '').trim();
 
-    db.run(
-        `
-        INSERT INTO payments (id, city, slot, name, period, amount, method, date)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `,
-        [
-            paymentId,
-            city,
-            slot,
-            name,
-            period,
-            Number(amount),
-            method || 'Tahsilat',
-            date || ''
-        ],
-        function (err) {
-            if (err) return res.status(500).json({ success: false, error: err.message });
+        await supabase.from('payments').delete().eq('city', cleanName);
+        await supabase.from('ads').delete().eq('city', cleanName);
+        await supabase.from('cities').delete().eq('name', cleanName);
 
-            getState((err, state) => {
-                if (err) return res.status(500).json({ success: false, error: err.message });
-                res.json({ success: true, state });
+        const state = await getState();
+        res.json({ success: true, state });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/ad/save', async (req, res) => {
+    try {
+        const { id, slot, name, city, phone, images, date } = req.body;
+
+        if (!slot || !name || !city || !phone || !images || images.length === 0) {
+            return res.status(400).json({ success: false, error: 'Eksik ilan bilgisi.' });
+        }
+
+        const adId = id || '_' + Math.random().toString(36).substr(2, 9);
+        const image = images[0];
+
+        const { data: existing, error: checkError } = await supabase
+            .from('ads')
+            .select('*')
+            .eq('slot', Number(slot))
+            .eq('city', city)
+            .neq('id', adId)
+            .maybeSingle();
+
+        if (checkError) throw checkError;
+
+        if (existing) {
+            return res.status(400).json({
+                success: false,
+                error: `Seçtiğiniz ${city} Slot ${slot} şu anda ${existing.name} tarafından kullanılıyor.`
             });
         }
-    );
+
+        const { data: oldAd } = await supabase
+            .from('ads')
+            .select('date')
+            .eq('id', adId)
+            .maybeSingle();
+
+        const finalDate = oldAd?.date || date || '';
+
+        const { error } = await supabase
+            .from('ads')
+            .upsert({
+                id: adId,
+                slot: Number(slot),
+                name,
+                city,
+                phone,
+                image,
+                date: finalDate
+            }, { onConflict: 'id' });
+
+        if (error) throw error;
+
+        const state = await getState();
+        res.json({ success: true, state });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
-app.post('/api/payment/delete', (req, res) => {
-    const { id } = req.body;
+app.post('/api/ad/delete', async (req, res) => {
+    try {
+        const { id } = req.body;
 
-    db.run(`DELETE FROM payments WHERE id = ?`, [id], function (err) {
-        if (err) return res.status(500).json({ success: false, error: err.message });
+        const { error } = await supabase
+            .from('ads')
+            .delete()
+            .eq('id', id);
 
-        getState((err, state) => {
-            if (err) return res.status(500).json({ success: false, error: err.message });
-            res.json({ success: true, state });
-        });
+        if (error) throw error;
+
+        const state = await getState();
+        res.json({ success: true, state });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/payment/save', async (req, res) => {
+    try {
+        const { city, slot, name, period, amount, method, date } = req.body;
+
+        if (!city || !slot || !name || !period || !amount) {
+            return res.status(400).json({ success: false, error: 'Eksik tahsilat bilgisi.' });
+        }
+
+        const paymentId = 'pay_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+
+        const { error } = await supabase
+            .from('payments')
+            .insert({
+                id: paymentId,
+                city,
+                slot: Number(slot),
+                name,
+                period,
+                amount: Number(amount),
+                method: method || 'Tahsilat',
+                date: date || ''
+            });
+
+        if (error) throw error;
+
+        const state = await getState();
+        res.json({ success: true, state });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/payment/delete', async (req, res) => {
+    try {
+        const { id } = req.body;
+
+        const { error } = await supabase
+            .from('payments')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        const state = await getState();
+        res.json({ success: true, state });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+ensureDefaults().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Elegant backend Supabase ile çalışıyor: http://localhost:${PORT}`);
     });
-});
-
-app.listen(PORT, () => {
-    console.log(`Elegant backend çalışıyor: http://localhost:${PORT}`);
 });
