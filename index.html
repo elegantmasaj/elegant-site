@@ -105,10 +105,12 @@
             initIndex();
         });
 
+        const STORAGE_KEY = 'elegant_site_state';
+
         async function apiGetState() {
-            const response = await fetch('/api/state');
-            if (!response.ok) throw new Error('Veriler alınamadı.');
-            return await response.json();
+            const savedState = localStorage.getItem(STORAGE_KEY);
+            if (!savedState) return state;
+            return JSON.parse(savedState);
         }
 
         async function initIndex() {
@@ -119,7 +121,7 @@
                 renderGrid();
             } catch (error) {
                 console.error(error);
-                document.getElementById('adsGridContainer').innerHTML = '<div class="loading-text">Veriler yüklenemedi. Lütfen daha sonra tekrar deneyin.</div>';
+                document.getElementById('adsGridContainer').innerHTML = '<div class="loading-text">Yerel veriler yüklenemedi. Lütfen admin panelinden kayıt yapın.</div>';
             }
         }
 

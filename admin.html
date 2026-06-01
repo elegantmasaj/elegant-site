@@ -270,11 +270,14 @@
             await loadState();
         });
 
+        const STORAGE_KEY = 'elegant_site_state';
+
         async function loadState() {
             try {
-                const response = await fetch('/api/state');
-                if (!response.ok) throw new Error('Veriler alınamadı.');
-                state = await response.json();
+                const savedState = localStorage.getItem(STORAGE_KEY);
+                if (savedState) {
+                    state = JSON.parse(savedState);
+                }
 
                 if(!state.adminPassword) state.adminPassword = "ElegantAdmin2026*";
                 if(!state.cities) state.cities = ["İstanbul", "Ankara", "İzmir"];
@@ -282,35 +285,81 @@
                 if(!state.payments) state.payments = [];
                 if(!state.tgSettings) state.tgSettings = { username: "kullanici_adiniz", phone: "", preference: "username" };
 
+                saveStateToLocal();
+
                 if(!adminActiveCityFilter && state.cities.length > 0) {
                     adminActiveCityFilter = state.cities[0].toUpperCase();
                 }
             } catch (e) {
                 console.error(e);
-                showPopup('Backend bağlantısı kurulamadı. Lütfen server.js çalışıyor mu kontrol edin.', 'danger');
+                showPopup('Yerel veriler okunamadı. localStorage kontrol edin.', 'danger');
             }
         }
 
-        async function apiPost(url, data) {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
+        function saveStateToLocal() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
 
-            const result = await response.json();
-            if (!response.ok || !result.success) {
-                throw new Error(result.error || 'İşlem başarısız oldu.');
+        async function apiPost(url, data) {
+            if (url === '/api/settings/save') {
+                state.adminPassword = data.adminPassword;
+                state.tgSettings = data.tgSettings;
             }
 
-            if (result.state) {
-                state = result.state;
-                if(state.cities.length > 0 && !state.cities.some(city => city.toUpperCase() === adminActiveCityFilter)) {
-                    adminActiveCityFilter = state.cities[0].toUpperCase();
+            if (url === '/api/city/add') {
+                const name = data.name.trim();
+                if (!state.cities.includes(name)) state.cities.push(name);
+            }
+
+            if (url === '/api/city/delete') {
+                state.cities = state.cities.filter(city => city !== data.name);
+                state.ads = state.ads.filter(ad => ad.city !== data.name);
+                state.payments = state.payments.filter(payment => payment.city !== data.name);
+            }
+
+            if (url === '/api/ad/save') {
+                const editingId = data.id;
+                const sameSlotAd = state.ads.find(ad =>
+                    ad.id !== editingId &&
+                    ad.city === data.city &&
+                    parseInt(ad.slot) === parseInt(data.slot)
+                );
+
+                if (sameSlotAd) {
+                    throw new Error('Bu şehirde seçilen slot zaten dolu.');
+                }
+
+                if (editingId) {
+                    state.ads = state.ads.map(ad => ad.id === editingId ? { ...ad, ...data } : ad);
+                } else {
+                    state.ads.push({
+                        ...data,
+                        id: 'ad_' + Date.now() + '_' + Math.random().toString(16).slice(2)
+                    });
                 }
             }
 
-            return result;
+            if (url === '/api/ad/delete') {
+                state.ads = state.ads.filter(ad => ad.id !== data.id);
+            }
+
+            if (url === '/api/payment/save') {
+                state.payments.push({
+                    ...data,
+                    id: 'pay_' + Date.now() + '_' + Math.random().toString(16).slice(2)
+                });
+            }
+
+            if (url === '/api/payment/delete') {
+                state.payments = state.payments.filter(payment => payment.id !== data.id);
+            }
+
+            if(state.cities.length > 0 && !state.cities.some(city => city.toUpperCase() === adminActiveCityFilter)) {
+                adminActiveCityFilter = state.cities[0].toUpperCase();
+            }
+
+            saveStateToLocal();
+            return { success: true, state };
         }
 
         function showPopup(message, type = 'info') {
